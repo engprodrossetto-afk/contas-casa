@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<meta name="description" content="Controle financeiro doméstico">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>ContasCasa</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:      #0f1117;
+  --surface: #1a1d27;
+  --s2:      #22263a;
+  --border:  #2e3250;
+  --accent:  #6c8aff;
+  --accent2: #a78bfa;
+  --green:   #34d399;
+  --red:     #f87171;
+  --yellow:  #fbbf24;
+  --text:    #e8eaf6;
+  --muted:   #8892b0;
+  --r:       16px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100%;
+  overflow:hidden; /* handled per screen */
+}
+
+/* ════════════════════════════════
+   LOGIN
+════════════════════════════════ */
+#loginScreen {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at 55% 25%, #1e2a5e 0%, #0f1117 65%);
+  padding:24px;
+  overflow-y:auto;
+  z-index:10;
+}
+.login-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:36px 28px;
+  width:100%;
+  max-width:380px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.5);
+}
+.login-logo { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
+.logo-icon {
+  width:48px; height:48px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; flex-shrink:0;
+}
+.logo-text { font-size:20px; font-weight:700; }
+.logo-sub  { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
+.login-title { font-size:22px; font-weight:700; margin-bottom:4px; }
+.login-desc  { color:var(--muted); font-size:13px; margin-bottom:28px; }
+
+.lfield { margin-bottom:18px; }
+.lfield label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:8px; }
+.lfield input {
+  width:100%; background:var(--bg); border:1.5px solid var(--border);
+  border-radius:12px; padding:14px 16px; color:var(--text);
+  font-family:'DM Sans',sans-serif; font-size:16px; outline:none;
+  transition:border-color .2s; -webkit-appearance:none;
+}
+.lfield input:focus { border-color:var(--accent); }
+
+.btn-primary {
+  width:100%; background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none; border-radius:12px; padding:16px; color:#fff;
+  font-family:'DM Sans',sans-serif; font-size:16px; font-weight:600;
+  cursor:pointer; margin-top:8px; transition:opacity .2s;
+  -webkit-appearance:none;
+}
+.btn-primary:active { opacity:.85; }
+
+.login-hint {
+  margin-top:20px; background:var(--s2); border-radius:12px;
+  padding:14px 16px; font-size:12px; color:var(--muted); line-height:1.9;
+}
+.login-hint strong { color:var(--accent); font-family:'DM Mono',monospace; }
+.err-box {
+  background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.3);
+  border-radius:10px; padding:10px 14px; color:var(--red); font-size:13px;
+  margin-top:12px; display:none;
+}
+
+/* ════════════════════════════════
+   APP SHELL
+════════════════════════════════ */
+#appScreen {
+  position:fixed; inset:0;
+  display:none; flex-direction:column;
+}
+
+/* TOP BAR */
+.topbar {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 16px;
+  height:56px;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0;
+  padding-top:env(safe-area-inset-top,0px);
+}
+.topbar-logo { display:flex; align-items:center; gap:8px; }
+.topbar-logo .logo-icon { width:30px; height:30px; font-size:13px; border-radius:9px; }
+.topbar-logo span { font-size:15px; font-weight:700; }
+.topbar-right { display:flex; align-items:center; gap:8px; }
+.chip-user {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:20px; padding:5px 12px; font-size:12px; color:var(--muted);
+}
+.chip-user b { color:var(--accent); }
+.btn-out {
+  background:none; border:1.5px solid var(--border); border-radius:9px;
+  padding:5px 12px; color:var(--muted); font-size:12px; font-weight:600;
+  cursor:pointer; font-family:'DM Sans',sans-serif;
+}
+
+/* STICKY HEADER (cards + mês) */
+.sticky-header {
+  flex-shrink:0;
+  background:var(--bg);
+  padding:8px 12px 0;
+  border-bottom:1px solid var(--border);
+  box-shadow:0 4px 16px rgba(0,0,0,.35);
+  z-index:50;
+}
+
+/* SCROLL AREA */
+.scroll-area {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  padding:12px 12px calc(80px + var(--safe-bottom));
+  -webkit-overflow-scrolling:touch;
+}
+
+/* ── CARDS: 3 colunas numa única linha ── */
+.cards {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:6px; margin-bottom:6px;
+}
+.card-full { grid-column:unset; }
+.card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:8px 10px;
+}
+.card-label { font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); margin-bottom:3px; }
+.card-val   { font-family:'DM Mono',monospace; font-size:14px; font-weight:600; line-height:1; }
+.card-val.red    { color:var(--red); }
+.card-val.green  { color:var(--green); }
+.card-val.accent { color:var(--accent); }
+.card-sub { font-size:9px; color:var(--muted); margin-top:2px; }
+
+/* ── MÊS NAV ── */
+.month-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:5px 2px 7px;
+}
+.month-nav { display:flex; align-items:center; gap:8px; }
+.mbtn {
+  background:var(--s2); border:1.5px solid var(--border); border-radius:7px;
+  width:28px; height:28px; color:var(--muted); font-size:14px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+}
+.mbtn:active { border-color:var(--accent); color:var(--accent); }
+#monthLabel { font-family:'DM Mono',monospace; font-size:12px; color:var(--accent); min-width:100px; text-align:center; }
+.month-bar-title { font-size:11px; font-weight:600; color:var(--muted); }
+
+/* ── LISTA DE CONTAS ── */
+.conta-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); padding:14px 16px; margin-bottom:10px;
+}
+.conta-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.conta-desc { font-size:15px; font-weight:600; line-height:1.2; }
+.conta-autor{ font-size:11px; color:var(--muted); margin-top:2px; }
+.conta-val  { font-family:'DM Mono',monospace; font-size:16px; font-weight:500; color:var(--text); white-space:nowrap; }
+.conta-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.cat-chip {
+  background:var(--s2); border-radius:20px; padding:3px 10px;
+  font-size:11px; color:var(--muted);
+  border-left:3px solid var(--border);
+}
+.date-chip { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); }
+.status-chip {
+  border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600;
+  cursor:pointer; user-select:none;
+}
+.s-pago     { background:rgba(52,211,153,.15); color:var(--green); }
+.s-pendente { background:rgba(251,191,36,.15);  color:var(--yellow); }
+.s-vencida  { background:rgba(248,113,113,.15); color:var(--red); }
+
+.conta-actions {
+  display:flex; gap:4px; justify-content:flex-end;
+  margin-top:10px; padding-top:8px;
+  border-top:1px solid var(--border);
+}
+.ic-btn {
+  width:32px; height:32px; border-radius:9px; border:none;
+  background:var(--s2); cursor:pointer; display:flex;
+  align-items:center; justify-content:center; font-size:14px;
+}
+.ic-btn:active { opacity:.7; }
+
+.empty-box { text-align:center; padding:40px 20px; color:var(--muted); }
+.empty-box .ei { font-size:36px; margin-bottom:10px; }
+.empty-box p { font-size:13px; }
+
+
+
+/* ── FAB — botão flutuante ── */
+.fab {
+  position:fixed;
+  bottom:calc(16px + var(--safe-bottom));
+  right:16px;
+  width:56px; height:56px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:18px; border:none; color:#fff; font-size:26px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 6px 24px rgba(108,138,255,.4);
+  z-index:200;
+  transition:transform .15s;
+}
+.fab:active { transform:scale(.92); }
+
+/* ════════════════════════════════
+   BOTTOM SHEET (Nova Conta / Editar)
+════════════════════════════════ */
+.sheet-overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.6);
+  backdrop-filter:blur(4px);
+  z-index:300;
+  display:none; align-items:flex-end; justify-content:center;
+}
+.sheet-overlay.open { display:flex; }
+.sheet {
+  background:var(--surface);
+  border-radius:24px 24px 0 0;
+  border-top:1px solid var(--border);
+  width:100%; max-width:520px;
+  padding:0 0 calc(20px + var(--safe-bottom));
+  max-height:92vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp { from { transform:translateY(60px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+.sheet-handle {
+  width:38px; height:4px; background:var(--border); border-radius:4px;
+  margin:12px auto 0;
+}
+.sheet-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px 12px;
+  border-bottom:1px solid var(--border);
+}
+.sheet-title { font-size:16px; font-weight:700; }
+.sheet-close {
+  width:32px; height:32px; border-radius:9px; background:var(--s2);
+  border:none; color:var(--muted); font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.sheet-body { padding:16px 20px; }
+
+.sfield { margin-bottom:14px; }
+.sfield label { display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); margin-bottom:7px; }
+.sfield input, .sfield select {
+  width:100%; background:var(--bg); border:1.5px solid var(--border);
+  border-radius:12px; padding:13px 14px; color:var(--text);
+  font-family:'DM Sans',sans-serif; font-size:15px; outline:none;
+  transition:border-color .2s; -webkit-appearance:none; appearance:none;
+}
+.sfield input:focus, .sfield select:focus { border-color:var(--accent); }
+.sfield select option { background:#1a1d27; }
+
+.valor-inp {
+  font-family:'DM Mono',monospace !important;
+  font-size:22px !important;
+  color:var(--green) !important;
+  text-align:right;
+  font-weight:500;
+}
+
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+.btn-confirm {
+  width:100%; background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none; border-radius:12px; padding:15px; color:#fff;
+  font-family:'DM Sans',sans-serif; font-size:15px; font-weight:700;
+  cursor:pointer; margin-top:8px;
+}
+.btn-confirm:active { opacity:.85; }
+
+/* ════════════════════════════════
+   CONFIRM DELETE SHEET
+════════════════════════════════ */
+.del-overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(4px);
+  z-index:400;
+  display:none; align-items:flex-end; justify-content:center;
+}
+.del-overlay.open { display:flex; }
+.del-sheet {
+  background:var(--surface);
+  border-radius:24px 24px 0 0;
+  border-top:1px solid var(--border);
+  width:100%; max-width:520px;
+  padding:20px 20px calc(28px + var(--safe-bottom));
+  animation:slideUp .2s ease;
+}
+.del-sheet h3 { font-size:16px; font-weight:700; margin-bottom:6px; }
+.del-sheet p  { font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.5; }
+.del-desc { color:var(--text); font-weight:600; }
+.del-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.del-actions-parc { display:flex; flex-direction:column; gap:8px; }
+.del-parc-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.btn-del-cancel {
+  background:var(--s2); border:1.5px solid var(--border); border-radius:12px;
+  padding:14px; color:var(--muted); font-family:'DM Sans',sans-serif;
+  font-size:14px; font-weight:600; cursor:pointer; width:100%;
+}
+.btn-del-confirm {
+  background:rgba(248,113,113,.15); border:1.5px solid rgba(248,113,113,.4);
+  border-radius:12px; padding:14px; color:var(--red);
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer;
+}
+.btn-del-confirm:active { background:rgba(248,113,113,.3); }
+.btn-del-esta {
+  background:rgba(251,191,36,.12); border:1.5px solid rgba(251,191,36,.35);
+  border-radius:12px; padding:14px; color:var(--yellow);
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer;
+}
+.btn-del-esta:active { background:rgba(251,191,36,.25); }
+
+/* TOAST */
+#toast {
+  position:fixed; bottom:calc(80px + var(--safe-bottom)); left:50%;
+  transform:translateX(-50%);
+  background:var(--surface); border:1.5px solid var(--green);
+  border-radius:14px; padding:12px 22px; font-size:13px; font-weight:600;
+  color:var(--green); display:none; z-index:999;
+  white-space:nowrap;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+
+/* ── PARCELAMENTO ── */
+.parc-preview {
+  background:rgba(108,138,255,.08);
+  border:1px solid rgba(108,138,255,.25);
+  border-radius:10px; padding:10px 14px; margin-top:-6px;
+}
+.parc-info { font-size:12px; color:var(--muted); line-height:1.7; }
+.parc-info b { color:var(--accent); font-family:'DM Mono',monospace; }
+
+.parc-chip {
+  background:rgba(167,139,250,.15); border-radius:20px;
+  padding:3px 8px; font-size:11px; color:var(--accent2); font-weight:600;
+}
+
+/* ── LOADING ── */
+.loading-overlay {
+  position:fixed; inset:0; background:rgba(15,17,23,.85);
+  display:flex; align-items:center; justify-content:center;
+  z-index:600; flex-direction:column; gap:14px;
+}
+.loading-overlay.hidden { display:none; }
+.spinner {
+  width:36px; height:36px;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-txt { font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ════ LOGIN ════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🏠</div>
+      <div>
+        <div class="logo-text">ContasCasa</div>
+        <div class="logo-sub">controle financeiro doméstico</div>
+      </div>
+    </div>
+    <h2 class="login-title">Bem-vindo!</h2>
+    <p class="login-desc">Entre para acessar suas contas.</p>
+    <div class="lfield">
+      <label>Usuário</label>
+      <input type="text" id="iUser" placeholder="seu usuário" autocomplete="off" autocapitalize="none">
+    </div>
+    <div class="lfield">
+      <label>Senha</label>
+      <input type="password" id="iPass" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <div class="err-box" id="loginErr">Usuário ou senha incorretos.</div>
+    <div class="login-hint">
+      <strong>felipe</strong> → <strong>123</strong><br>
+      <strong>laila</strong> → <strong>123</strong>
+    </div>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="appScreen">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-icon">🏠</div>
+      <span>ContasCasa</span>
+    </div>
+    <div class="topbar-right">
+      <div class="chip-user">Olá, <b id="userLabel">—</b></div>
+      <button class="btn-out" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+
+  <!-- STICKY HEADER -->
+  <div class="sticky-header">
+    <!-- CARDS RESUMO -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-label">Total</div>
+        <div class="card-val red" id="cTotal">R$ 0,00</div>
+        <div class="card-sub" id="cQtd">0 contas</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Pago</div>
+        <div class="card-val green" id="cPago">R$ 0,00</div>
+        <div class="card-sub" id="cQPago">0 pagas</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Em aberto</div>
+        <div class="card-val accent" id="cAberto">R$ 0,00</div>
+        <div class="card-sub" id="cQAberto">0 pend.</div>
+      </div>
+    </div>
+
+    <!-- NAVEGAÇÃO DE MÊS -->
+    <div class="month-bar">
+      <span class="month-bar-title">Contas</span>
+      <div class="month-nav">
+        <button class="mbtn" onclick="mudaMes(-1)">‹</button>
+        <span id="monthLabel">—</span>
+        <button class="mbtn" onclick="mudaMes(1)">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCROLL -->
+  <div class="scroll-area" id="scrollArea">
+
+    <!-- LISTA -->
+    <div id="listaContas"></div>
+
+
+
+  </div><!-- /scroll-area -->
+
+  <!-- FAB -->
+  <button class="fab" onclick="abrirSheet()" title="Nova conta">＋</button>
+
+</div><!-- /appScreen -->
+
+<!-- ════ SHEET: NOVA / EDITAR ════ -->
+<div class="sheet-overlay" id="sheetOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <span class="sheet-title" id="sheetTitle">Nova Conta</span>
+      <button class="sheet-close" onclick="fecharSheet()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="sfield">
+        <label>Descrição</label>
+        <input type="text" id="fDesc" placeholder="Ex: Conta de luz" autocapitalize="sentences">
+      </div>
+      <div class="sfield">
+        <label>Valor (R$)</label>
+        <input type="text" id="fValor" class="valor-inp" placeholder="0,00" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="grid2">
+        <div class="sfield">
+          <label>Vencimento (1ª parcela)</label>
+          <input type="date" id="fVenc">
+        </div>
+        <div class="sfield">
+          <label>Status</label>
+          <select id="fStatus">
+            <option value="pendente">Pendente</option>
+            <option value="pago">Pago</option>
+            <option value="vencida">Vencida</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PARCELAMENTO -->
+      <div class="sfield">
+        <label>Parcelamento</label>
+        <select id="fParc" onchange="selecionaParc(this)">
+          <option value="1">À vista</option>
+          <option value="2">2x</option>
+          <option value="3">3x</option>
+          <option value="4">4x</option>
+          <option value="5">5x</option>
+          <option value="6">6x</option>
+          <option value="7">7x</option>
+          <option value="8">8x</option>
+          <option value="9">9x</option>
+          <option value="10">10x</option>
+          <option value="11">11x</option>
+          <option value="12">12x</option>
+          <option value="13">13x</option>
+          <option value="14">14x</option>
+          <option value="15">15x</option>
+          <option value="16">16x</option>
+          <option value="17">17x</option>
+          <option value="18">18x</option>
+          <option value="19">19x</option>
+          <option value="20">20x</option>
+          <option value="21">21x</option>
+          <option value="22">22x</option>
+          <option value="23">23x</option>
+          <option value="24">24x</option>
+          <option value="25">25x</option>
+          <option value="26">26x</option>
+          <option value="27">27x</option>
+          <option value="28">28x</option>
+          <option value="29">29x</option>
+          <option value="30">30x</option>
+          <option value="31">31x</option>
+          <option value="32">32x</option>
+          <option value="33">33x</option>
+          <option value="34">34x</option>
+          <option value="35">35x</option>
+          <option value="36">36x</option>
+          <option value="37">37x</option>
+          <option value="38">38x</option>
+          <option value="39">39x</option>
+          <option value="40">40x</option>
+          <option value="41">41x</option>
+          <option value="42">42x</option>
+          <option value="43">43x</option>
+          <option value="44">44x</option>
+          <option value="45">45x</option>
+          <option value="46">46x</option>
+          <option value="47">47x</option>
+          <option value="48">48x</option>
+          <option value="49">49x</option>
+          <option value="50">50x</option>
+          <option value="51">51x</option>
+          <option value="52">52x</option>
+          <option value="53">53x</option>
+          <option value="54">54x</option>
+          <option value="55">55x</option>
+          <option value="56">56x</option>
+          <option value="57">57x</option>
+          <option value="58">58x</option>
+          <option value="59">59x</option>
+          <option value="60">60x</option>
+          <option value="61">61x</option>
+          <option value="62">62x</option>
+          <option value="63">63x</option>
+          <option value="64">64x</option>
+          <option value="65">65x</option>
+          <option value="66">66x</option>
+          <option value="67">67x</option>
+          <option value="68">68x</option>
+          <option value="69">69x</option>
+          <option value="70">70x</option>
+          <option value="71">71x</option>
+          <option value="72">72x</option>
+          <option value="73">73x</option>
+          <option value="74">74x</option>
+          <option value="75">75x</option>
+          <option value="76">76x</option>
+          <option value="77">77x</option>
+          <option value="78">78x</option>
+          <option value="79">79x</option>
+          <option value="80">80x</option>
+          <option value="81">81x</option>
+          <option value="82">82x</option>
+          <option value="83">83x</option>
+          <option value="84">84x</option>
+          <option value="85">85x</option>
+          <option value="86">86x</option>
+          <option value="87">87x</option>
+          <option value="88">88x</option>
+          <option value="89">89x</option>
+          <option value="90">90x</option>
+          <option value="91">91x</option>
+          <option value="92">92x</option>
+          <option value="93">93x</option>
+          <option value="94">94x</option>
+          <option value="95">95x</option>
+          <option value="96">96x</option>
+          <option value="97">97x</option>
+          <option value="98">98x</option>
+          <option value="99">99x</option>
+          <option value="100">100x</option>
+          <option value="101">101x</option>
+          <option value="102">102x</option>
+          <option value="103">103x</option>
+          <option value="104">104x</option>
+          <option value="105">105x</option>
+          <option value="106">106x</option>
+          <option value="107">107x</option>
+          <option value="108">108x</option>
+          <option value="109">109x</option>
+          <option value="110">110x</option>
+          <option value="111">111x</option>
+          <option value="112">112x</option>
+          <option value="113">113x</option>
+          <option value="114">114x</option>
+          <option value="115">115x</option>
+          <option value="116">116x</option>
+          <option value="117">117x</option>
+          <option value="118">118x</option>
+          <option value="119">119x</option>
+          <option value="120">120x</option>
+        </select>
+      </div>
+      <div class="parc-preview" id="parcPreview" style="display:none">
+        <div class="parc-info" id="parcInfo"></div>
+      </div>
+
+      <div class="sfield">
+        <label>Categoria</label>
+        <select id="fCat">
+          <option value="🏠 Moradia">🏠 Moradia</option>
+          <option value="💡 Energia">💡 Energia</option>
+          <option value="💧 Água/Gás">💧 Água/Gás</option>
+          <option value="📱 Telefone">📱 Telefone</option>
+          <option value="🌐 Internet">🌐 Internet</option>
+          <option value="🛒 Mercado">🛒 Mercado</option>
+          <option value="🚗 Transporte">🚗 Transporte</option>
+          <option value="🏥 Saúde">🏥 Saúde</option>
+          <option value="🎓 Educação">🎓 Educação</option>
+          <option value="💳 Cartão">💳 Cartão</option>
+          <option value="🏦 Financiamento">🏦 Financiamento</option>
+          <option value="📦 Outros">📦 Outros</option>
+        </select>
+      </div>
+      <button class="btn-confirm" id="btnConfirm" onclick="confirmarSheet()">Registrar Conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ SHEET: CONFIRMAR DELETE ════ -->
+<div class="del-overlay" id="delOverlay">
+  <div class="del-sheet">
+    <div class="sheet-handle" style="margin-bottom:16px"></div>
+    <h3 id="delTitle">Remover conta?</h3>
+    <p>Você está prestes a excluir:<br><span class="del-desc" id="delDesc">—</span></p>
+
+    <!-- Botões para conta SEM parcelamento -->
+    <div class="del-actions" id="delActionsSimples">
+      <button class="btn-del-cancel" onclick="fecharDel()">Cancelar</button>
+      <button class="btn-del-confirm" onclick="confirmarDel('unica')">Excluir</button>
+    </div>
+
+    <!-- Botões para conta COM parcelamento -->
+    <div class="del-actions-parc" id="delActionsParc" style="display:none">
+      <button class="btn-del-cancel" onclick="fecharDel()">Cancelar</button>
+      <div class="del-parc-btns">
+        <button class="btn-del-esta" onclick="confirmarDel('esta')">Só esta parcela</button>
+        <button class="btn-del-confirm" onclick="confirmarDel('todas')">Todas as parcelas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-txt">Sincronizando...</div>
+</div>
+<div id="toast">✓</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ════ SUPABASE ════
+const SUPA_URL = 'https://nzpfrizzhubvmwxxxdlo.supabase.co';
+const SUPA_KEY = 'sb_publishable_vveMamwr0OaRuAzsS5ExmA_xSLcbd7P';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ════ DADOS ════
+const USERS = {
+  felipe: { senha:'123', nome:'Felipe' },
+  laila:  { senha:'123', nome:'Laila' }
+};
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+               'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+const CORES = {
+  '🏠 Moradia':'#6c8aff','💡 Energia':'#fbbf24','💧 Água/Gás':'#60a5fa',
+  '📱 Telefone':'#a78bfa','🌐 Internet':'#34d399','🛒 Mercado':'#fb923c',
+  '🚗 Transporte':'#f472b6','🏥 Saúde':'#f87171','🎓 Educação':'#818cf8',
+  '💳 Cartão':'#e879f9','🏦 Financiamento':'#94a3b8','📦 Outros':'#64748b'
+};
+
+let currentUser = null;
+let contas = [];
+let hoje   = new Date();
+let mes    = hoje.getMonth();
+let ano    = hoje.getFullYear();
+let modoEdit = false;
+let editId   = null;
+let pendDelId = null;
+let realtimeCh = null;
+
+// ════ MÁSCARA VALOR ════
+function aplicaMask(inp) {
+  let d = inp.value.replace(/\D/g,'');
+  if (!d) { inp.value = ''; return; }
+  let cents = parseInt(d, 10);
+  let r = (cents / 100).toFixed(2);
+  let [intPart, decPart] = r.split('.');
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  inp.value = intPart + ',' + decPart;
+}
+function getValor(inp) {
+  return parseFloat(inp.value.replace(/\./g,'').replace(',','.')) || 0;
+}
+function setValor(inp, num) {
+  let [i,d] = num.toFixed(2).split('.');
+  i = i.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  inp.value = i + ',' + d;
+}
+function bloqueiaChar(e) {
+  const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
+  if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
+}
+
+document.getElementById('fValor').addEventListener('input', function(){ aplicaMask(this); });
+document.getElementById('fValor').addEventListener('keydown', bloqueiaChar);
+
+// ════ LOGIN ════
+document.getElementById('iPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('iUser').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('iPass').focus(); });
+
+async function doLogin() {
+  const u = document.getElementById('iUser').value.trim().toLowerCase();
+  const p = document.getElementById('iPass').value;
+  if (USERS[u] && USERS[u].senha === p) {
+    currentUser = { id:u, nome:USERS[u].nome };
+    document.getElementById('loginErr').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display  = 'flex';
+    document.getElementById('userLabel').textContent = USERS[u].nome;
+    document.getElementById('fVenc').valueAsDate = new Date();
+    toast('⏳ Carregando...', false);
+    await carregarContas();
+    iniciarRealtime();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('iPass').value = '';
+  }
+}
+function doLogout() {
+  if (realtimeCh) { sb.removeChannel(realtimeCh); realtimeCh = null; }
+  currentUser = null;
+  contas = [];
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appScreen').style.display   = 'none';
+  document.getElementById('iUser').value = '';
+  document.getElementById('iPass').value = '';
+}
+
+// ════ NAVEGAÇÃO MÊS ════
+function mudaMes(d) {
+  mes += d;
+  if (mes > 11) { mes = 0; ano++; }
+  if (mes < 0)  { mes = 11; ano--; }
+  render();
+}
+function contasMes() {
+  return contas.filter(c => {
+    const dt = new Date(c.vencimento + 'T00:00:00');
+    return dt.getMonth() === mes && dt.getFullYear() === ano;
+  });
+}
+
+// ════ PARCELAMENTO ════
+let numParc = 1;
+
+function selecionaParc(sel) {
+  numParc = parseInt(sel.value);
+  atualizaParcPreview();
+}
+
+function atualizaParcPreview() {
+  const preview = document.getElementById('parcPreview');
+  const info    = document.getElementById('parcInfo');
+  const valor   = getValor(document.getElementById('fValor'));
+  const venc    = document.getElementById('fVenc').value;
+
+  if (numParc <= 1 || !valor || !venc) { preview.style.display = 'none'; return; }
+
+  const parcVal = valor / numParc;
+  const [y, m, d] = venc.split('-').map(Number);
+  let linhas = '';
+  for (let i = 0; i < numParc; i++) {
+    let pm = m - 1 + i;
+    let py = y + Math.floor(pm / 12);
+    let mm = (pm % 12) + 1;
+    let ds = String(d).padStart(2,'0');
+    let ms = String(mm).padStart(2,'0');
+    linhas += `Parcela ${i+1}/${numParc} — <b>${fmt(parcVal)}</b> — ${ds}/${ms}/${py}<br>`;
+  }
+  info.innerHTML = linhas;
+  preview.style.display = 'block';
+}
+
+// Atualiza preview ao mudar valor ou vencimento
+document.getElementById('fValor').addEventListener('input', atualizaParcPreview);
+document.getElementById('fVenc').addEventListener('change', atualizaParcPreview);
+
+// ════ SHEET (NOVA / EDITAR) ════
+function abrirSheet(id) {
+  modoEdit = !!id;
+  editId   = id || null;
+  document.getElementById('sheetTitle').textContent = modoEdit ? 'Editar Conta' : 'Nova Conta';
+  document.getElementById('btnConfirm').textContent = modoEdit ? 'Salvar alterações' : 'Registrar Conta';
+  document.getElementById('sheetOverlay').classList.add('open');
+
+  // Reset parcelamento
+  numParc = 1;
+  document.getElementById('fParc').value = '1';
+  document.getElementById('parcPreview').style.display = 'none';
+
+  if (modoEdit) {
+    const c = contas.find(x => String(x.id) === String(id));
+    if (!c) return;
+    document.getElementById('fDesc').value   = c.desc;
+    setValor(document.getElementById('fValor'), c.valor);
+    document.getElementById('fVenc').value   = c.vencimento;
+    document.getElementById('fStatus').value = c.status;
+    document.getElementById('fCat').value    = c.categoria;
+  } else {
+    document.getElementById('fDesc').value   = '';
+    document.getElementById('fValor').value  = '';
+    document.getElementById('fVenc').valueAsDate = new Date();
+    document.getElementById('fStatus').value = 'pendente';
+    document.getElementById('fCat').value    = '🏠 Moradia';
+  }
+  setTimeout(() => document.getElementById('fDesc').focus(), 300);
+}
+
+function fecharSheet() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+}
+
+async function confirmarSheet() {
+  const desc   = document.getElementById('fDesc').value.trim();
+  const valor  = getValor(document.getElementById('fValor'));
+  const venc   = document.getElementById('fVenc').value;
+  const status = document.getElementById('fStatus').value;
+  const cat    = document.getElementById('fCat').value;
+
+  if (!desc || !valor || !venc) { toast('⚠️ Preencha todos os campos', true); return; }
+
+  fecharSheet();
+
+  if (modoEdit && editId !== null) {
+    const { error } = await sb.from('contas').update({
+      desc, valor, vencimento: venc, status, categoria: cat
+    }).eq('id', String(editId));
+    if (error) { toast('❌ Erro ao atualizar', true); console.error(error); return; }
+    toast('✓ Conta atualizada!');
+  } else {
+    const parcVal = valor / numParc;
+    const [y, m, d] = venc.split('-').map(Number);
+    const grupoId = String(Date.now());
+    const rows = [];
+
+    for (let i = 0; i < numParc; i++) {
+      let pm = m - 1 + i;
+      let py = y + Math.floor(pm / 12);
+      let mm = (pm % 12) + 1;
+      let ds = String(d).padStart(2,'0');
+      let ms = String(mm).padStart(2,'0');
+      rows.push({
+        id: `${grupoId}_${i}`,
+        desc: numParc > 1 ? `${desc} (${i+1}/${numParc})` : desc,
+        valor: Math.round(parcVal * 100) / 100,
+        vencimento: `${py}-${ms}-${ds}`,
+        categoria: cat,
+        status,
+        autor: currentUser.nome,
+        grupo_id: numParc > 1 ? grupoId : null,
+        parcela: numParc > 1 ? `${i+1}/${numParc}` : null
+      });
+    }
+
+    const { error } = await sb.from('contas').insert(rows);
+    if (error) { toast('❌ Erro ao salvar', true); console.error(error); return; }
+    const msg = numParc > 1 ? `✓ ${numParc} parcelas registradas!` : '✓ Conta registrada!';
+    toast(msg);
+  }
+
+  await carregarContas();
+}
+
+// ════ DELETE COM CONFIRMAÇÃO ════
+function abrirDel(id) {
+  const c = contas.find(x => String(x.id) === String(id));
+  if (!c) return;
+  pendDelId = String(id);
+  document.getElementById('delDesc').textContent = c.desc + ' — ' + fmt(c.valor);
+
+  const temParc = !!c.grupoId;
+  document.getElementById('delTitle').textContent = temParc ? 'Remover parcela?' : 'Remover conta?';
+  document.getElementById('delActionsSimples').style.display = temParc ? 'none' : 'grid';
+  document.getElementById('delActionsParc').style.display   = temParc ? 'flex' : 'none';
+
+  document.getElementById('delOverlay').classList.add('open');
+}
+function fecharDel() {
+  document.getElementById('delOverlay').classList.remove('open');
+  pendDelId = null;
+}
+async function confirmarDel(modo) {
+  if (pendDelId === null) return;
+  const c = contas.find(x => String(x.id) === String(pendDelId));
+  fecharDel();
+
+  if (modo === 'todas' && c && c.grupoId) {
+    const gid = String(c.grupoId);
+    const { error } = await sb.from('contas').delete().eq('grupo_id', gid);
+    if (error) { toast('❌ Erro ao excluir', true); console.error(error); return; }
+    toast('🗑️ Todas as parcelas removidas');
+  } else {
+    const { error } = await sb.from('contas').delete().eq('id', String(pendDelId));
+    if (error) { toast('❌ Erro ao excluir', true); console.error(error); return; }
+    toast('🗑️ Conta removida');
+  }
+
+  await carregarContas();
+}
+
+// Fecha sheets clicando no overlay
+document.getElementById('sheetOverlay').addEventListener('click', function(e){ if(e.target===this) fecharSheet(); });
+document.getElementById('delOverlay').addEventListener('click',   function(e){ if(e.target===this) fecharDel(); });
+
+// ════ STATUS TOGGLE ════
+async function toggleStatus(id) {
+  const c = contas.find(x => String(x.id) === String(id));
+  if (!c) return;
+  const ciclo = { pendente:'pago', pago:'pendente', vencida:'pago' };
+  const novoStatus = ciclo[c.status] || 'pendente';
+  const { error } = await sb.from('contas').update({ status: novoStatus }).eq('id', String(id));
+  if (error) { toast('❌ Erro ao atualizar status', true); console.error(error); return; }
+  await carregarContas();
+}
+
+// ════ SUPABASE: CARREGAR E REALTIME ════
+async function carregarContas(silencioso=false) {
+  if (!silencioso) document.getElementById('loadingOverlay').classList.remove('hidden');
+  const { data, error } = await sb.from('contas').select('*').order('vencimento', { ascending: true });
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  if (error) { toast('❌ Erro ao carregar dados', true); console.error(error); return; }
+  contas = (data || []).map(r => ({
+    id:         r.id,
+    desc:       r.desc,
+    valor:      parseFloat(r.valor),
+    vencimento: r.vencimento,
+    categoria:  r.categoria,
+    status:     r.status,
+    autor:      r.autor,
+    grupoId:    r.grupo_id || null,
+    parcela:    r.parcela  || null
+  }));
+  render();
+}
+
+function iniciarRealtime() {
+  if (realtimeCh) sb.removeChannel(realtimeCh);
+  realtimeCh = sb.channel('contas-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'contas' }, () => {
+      carregarContas(true); // silencioso no realtime
+    })
+    .subscribe();
+}
+
+
+
+// ════ FORMATAÇÃO ════
+function fmt(v) {
+  return 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+}
+function fmtData(d) {
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+// ════ DELEGAÇÃO DE EVENTOS (FIX DELETE) ════
+// Usa event delegation para garantir que os botões funcionem mesmo após re-render
+document.getElementById('listaContas').addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const id     = Number(btn.dataset.id);
+  if (action === 'edit')   abrirSheet(btn.dataset.id);
+  if (action === 'del')    abrirDel(btn.dataset.id);
+  if (action === 'status') toggleStatus(btn.dataset.id);
+});
+
+// ════ RENDER ════
+function render() {
+  document.getElementById('monthLabel').textContent = `${MESES[mes]} ${ano}`;
+  const lista = contasMes();
+
+  const total  = lista.reduce((s,c) => s + c.valor, 0);
+  const pagos  = lista.filter(c => c.status === 'pago');
+  const aberto = lista.filter(c => c.status !== 'pago');
+  const tPago  = pagos.reduce((s,c) => s + c.valor, 0);
+  const tAbert = aberto.reduce((s,c) => s + c.valor, 0);
+
+  document.getElementById('cTotal').textContent   = fmt(total);
+  document.getElementById('cQtd').textContent     = `${lista.length} conta${lista.length!==1?'s':''}`;
+  document.getElementById('cPago').textContent    = fmt(tPago);
+  document.getElementById('cQPago').textContent   = `${pagos.length} paga${pagos.length!==1?'s':''}`;
+  document.getElementById('cAberto').textContent  = fmt(tAbert);
+  document.getElementById('cQAberto').textContent = `${aberto.length} pendente${aberto.length!==1?'s':''}`;
+
+  // Lista de contas
+  const lc = document.getElementById('listaContas');
+  if (lista.length === 0) {
+    lc.innerHTML = `<div class="empty-box"><div class="ei">📋</div><p>Nenhuma conta este mês.<br>Toque em <b>＋</b> para adicionar.</p></div>`;
+  } else {
+    const sorted = [...lista].sort((a,b) => a.vencimento.localeCompare(b.vencimento));
+    lc.innerHTML = sorted.map(c => {
+      const sc   = { pago:'s-pago', pendente:'s-pendente', vencida:'s-vencida' }[c.status] || 's-pendente';
+      const slbl = { pago:'✓ Pago', pendente:'Pendente', vencida:'Vencida' }[c.status] || c.status;
+      const cor  = CORES[c.categoria] || '#64748b';
+      return `
+      <div class="conta-card">
+        <div class="conta-top">
+          <div>
+            <div class="conta-desc">${c.desc}</div>
+            <div class="conta-autor">por ${c.autor}</div>
+          </div>
+          <div class="conta-val">${fmt(c.valor)}</div>
+        </div>
+        <div class="conta-meta">
+          <span class="cat-chip" style="border-left-color:${cor}">${c.categoria}</span>
+          <span class="date-chip">📅 ${fmtData(c.vencimento)}</span>
+          ${c.parcela ? `<span class="parc-chip">💳 ${c.parcela}</span>` : ''}
+          <span class="status-chip ${sc}" data-action="status" data-id="${c.id}">${slbl}</span>
+        </div>
+        <div class="conta-actions">
+          <button class="ic-btn" data-action="edit" data-id="${c.id}" title="Editar">✏️</button>
+          <button class="ic-btn" data-action="del"  data-id="${c.id}" title="Excluir">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+
+}
+
+// ════ TOAST ════
+let toastTimer;
+function toast(msg, err=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = err ? 'var(--red)' : 'var(--green)';
+  t.style.color       = err ? 'var(--red)' : 'var(--green)';
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.style.display='none', 2500);
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('SW registrado'))
+      .catch(e => console.warn('SW erro:', e));
+  });
+}
+</script>
+</body>
+</html>
