@@ -896,7 +896,7 @@ async function confirmarSheet() {
 
   if (modoEdit && editId !== null) {
     const { error } = await sb.from('contas').update({
-      desc, valor, vencimento: venc, status, categoria: cat
+      descricao: desc, valor, vencimento: venc, status, categoria: cat
     }).eq('id', String(editId));
     if (error) { toast('❌ Erro ao atualizar', true); console.error(error); return; }
     toast('✓ Conta atualizada!');
@@ -914,7 +914,7 @@ async function confirmarSheet() {
       let ms = String(mm).padStart(2,'0');
       rows.push({
         id: `${grupoId}_${i}`,
-        desc: numParc > 1 ? `${desc} (${i+1}/${numParc})` : desc,
+        descricao: numParc > 1 ? `${desc} (${i+1}/${numParc})` : desc,
         valor: Math.round(parcVal * 100) / 100,
         vencimento: `${py}-${ms}-${ds}`,
         categoria: cat,
@@ -994,7 +994,7 @@ async function carregarContas(silencioso=false) {
   if (error) { toast('❌ Erro ao carregar dados', true); console.error(error); return; }
   contas = (data || []).map(r => ({
     id:         r.id,
-    desc:       r.desc,
+    desc:       r.descricao,
     valor:      parseFloat(r.valor),
     vencimento: r.vencimento,
     categoria:  r.categoria,
