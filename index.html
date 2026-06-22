@@ -484,6 +484,7 @@ html, body {
     <div class="topbar-right">
       <div class="chip-user">Olá, <b id="userLabel">—</b></div>
       <button class="btn-icon-top" onclick="abrirGrafico()" title="Evolução mensal">📊</button>
+      <button class="btn-icon-top" id="btnNotif" onclick="ativarNotificacoes()" title="Ativar notificações">🔔</button>
       <button class="btn-out" onclick="doLogout()">Sair</button>
     </div>
   </div>
@@ -1220,6 +1221,27 @@ function agregarPorMes() {
     map[ym].total += c.valor;
   });
   return map;
+}
+
+// ════ NOTIFICAÇÕES (ONESIGNAL) ════
+function ativarNotificacoes() {
+  // Chamado direto no clique, sem await antes, para não perder o gesto do usuário
+  OneSignalDeferred.push(async function (OneSignal) {
+    try {
+      if (currentUser) await OneSignal.login(currentUser.id);
+      const perm = await OneSignal.Notifications.requestPermission();
+      const ativo = OneSignal.Notifications.permission === true;
+      if (ativo) {
+        toast('🔔 Notificações ativadas!');
+        document.getElementById('btnNotif').textContent = '🔔';
+      } else {
+        toast('⚠️ Permissão não concedida — veja as configurações do site no navegador', true);
+      }
+    } catch (e) {
+      console.error('Erro ao ativar notificações:', e);
+      toast('❌ Erro ao ativar notificações', true);
+    }
+  });
 }
 
 function abrirGrafico() {
