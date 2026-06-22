@@ -11,6 +11,17 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>ContasCasa</title>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function (OneSignal) {
+    await OneSignal.init({
+      appId: "f4f37fe7-d986-4ac2-a732-fcc75dc66e80",
+      serviceWorkerPath: "sw.js",
+      serviceWorkerParam: { scope: "/contas-casa/" }
+    });
+  });
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -855,6 +866,16 @@ async function doLogin() {
     toast('⏳ Carregando...', false);
     await carregarContas();
     iniciarRealtime();
+
+    // Vincula este dispositivo ao usuário no OneSignal e pede permissão de notificação
+    OneSignalDeferred.push(async function (OneSignal) {
+      try {
+        await OneSignal.login(u);
+        if (OneSignal.Notifications.permission !== true) {
+          await OneSignal.Notifications.requestPermission();
+        }
+      } catch (e) { console.warn('OneSignal login/permissão:', e); }
+    });
   } else {
     document.getElementById('loginErr').style.display = 'block';
     document.getElementById('iPass').value = '';
@@ -868,6 +889,9 @@ function doLogout() {
   document.getElementById('appScreen').style.display   = 'none';
   document.getElementById('iUser').value = '';
   document.getElementById('iPass').value = '';
+  OneSignalDeferred.push(async function (OneSignal) {
+    try { await OneSignal.logout(); } catch (e) { console.warn('OneSignal logout:', e); }
+  });
 }
 
 // ════ NAVEGAÇÃO MÊS ════

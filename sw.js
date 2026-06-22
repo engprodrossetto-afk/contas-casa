@@ -1,3 +1,6 @@
+// Integra o service worker do OneSignal (notificações push) ao SW existente
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+
 const CACHE = 'contascasa-v1';
 const ASSETS = [
   '/contas-casa/',
