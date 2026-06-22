@@ -1037,12 +1037,14 @@ async function confirmarDel(modo) {
 
   if (modo === 'todas' && c && c.grupoId) {
     const gid = String(c.grupoId);
-    const { error } = await sb.from('contas').delete().eq('grupo_id', gid);
+    const { data, error } = await sb.from('contas').delete().eq('grupo_id', gid).select();
     if (error) { toast('❌ Erro ao excluir', true); console.error(error); return; }
+    if (!data || data.length === 0) { toast('⚠️ Nada foi excluído — parcelas não encontradas', true); return; }
     toast('🗑️ Todas as parcelas removidas');
   } else {
-    const { error } = await sb.from('contas').delete().eq('id', String(pendDelId));
+    const { data, error } = await sb.from('contas').delete().eq('id', String(pendDelId)).select();
     if (error) { toast('❌ Erro ao excluir', true); console.error(error); return; }
+    if (!data || data.length === 0) { toast('⚠️ Nada foi excluído — conta não encontrada', true); return; }
     toast('🗑️ Conta removida');
   }
 
