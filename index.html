@@ -136,6 +136,13 @@ html, body {
   padding:5px 12px; color:var(--muted); font-size:12px; font-weight:600;
   cursor:pointer; font-family:'DM Sans',sans-serif;
 }
+.btn-icon-top {
+  background:none; border:1.5px solid var(--border); border-radius:9px;
+  width:32px; height:32px; font-size:15px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.btn-icon-top:active { border-color:var(--accent); }
 
 /* STICKY HEADER (cards + mês) */
 .sticky-header {
@@ -186,6 +193,16 @@ html, body {
 .mbtn:active { border-color:var(--accent); color:var(--accent); }
 #monthLabel { font-family:'DM Mono',monospace; font-size:12px; color:var(--accent); min-width:100px; text-align:center; }
 .month-bar-title { font-size:11px; font-weight:600; color:var(--muted); }
+
+.filter-row { display:flex; gap:8px; padding:10px 4px 10px; }
+.filtro-chip {
+  flex:1; padding:8px 0; border-radius:10px; border:1.5px solid var(--border);
+  background:var(--surface); color:var(--muted); font-size:12px; font-weight:600;
+  text-align:center; cursor:pointer; font-family:'DM Sans',sans-serif;
+  transition:all .15s;
+}
+.filtro-chip.active { background:var(--accent); color:#0f1117; border-color:var(--accent); }
+.filtro-chip:active { opacity:.8; }
 
 /* ── LISTA DE CONTAS ── */
 .conta-card {
@@ -397,6 +414,20 @@ html, body {
 }
 @keyframes spin { to { transform:rotate(360deg); } }
 .loading-txt { font-size:13px; color:var(--muted); }
+
+/* ════════════════════════════════
+   GRÁFICO MENSAL
+════════════════════════════════ */
+.grafico-info {
+  text-align:center; font-size:13px; color:var(--text);
+  background:var(--s2); border:1px solid var(--border); border-radius:12px;
+  padding:12px; margin-bottom:16px; font-weight:600;
+}
+.grafico-canvas-wrap { position:relative; height:240px; margin-bottom:14px; }
+.grafico-legenda { display:flex; justify-content:center; gap:18px; font-size:12px; color:var(--muted); }
+.grafico-legenda span { display:flex; align-items:center; gap:6px; }
+.grafico-legenda i { width:10px; height:10px; border-radius:3px; display:inline-block; }
+.grafico-empty { text-align:center; padding:30px 10px; color:var(--muted); font-size:13px; }
 </style>
 </head>
 <body>
@@ -441,6 +472,7 @@ html, body {
     </div>
     <div class="topbar-right">
       <div class="chip-user">Olá, <b id="userLabel">—</b></div>
+      <button class="btn-icon-top" onclick="abrirGrafico()" title="Evolução mensal">📊</button>
       <button class="btn-out" onclick="doLogout()">Sair</button>
     </div>
   </div>
@@ -474,6 +506,13 @@ html, body {
         <span id="monthLabel">—</span>
         <button class="mbtn" onclick="mudaMes(1)">›</button>
       </div>
+    </div>
+
+    <!-- FILTRO RÁPIDO -->
+    <div class="filter-row">
+      <button class="filtro-chip active" data-filtro="todas"  onclick="setFiltro('todas')">Todas</button>
+      <button class="filtro-chip"        data-filtro="aberto" onclick="setFiltro('aberto')">Pendentes</button>
+      <button class="filtro-chip"        data-filtro="pago"   onclick="setFiltro('pago')">Pagas</button>
     </div>
   </div>
 
@@ -701,6 +740,27 @@ html, body {
 </div>
 
 
+<!-- ════ GRÁFICO MENSAL ════ -->
+<div class="sheet-overlay" id="graficoOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <span class="sheet-title">📊 Evolução mensal</span>
+      <button class="sheet-close" onclick="fecharGrafico()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="grafico-info" id="graficoInfo">—</div>
+      <div class="grafico-canvas-wrap">
+        <canvas id="graficoCanvas"></canvas>
+      </div>
+      <div class="grafico-legenda">
+        <span><i style="background:var(--green)"></i> Pago</span>
+        <span><i style="background:var(--yellow)"></i> Pendente</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- LOADING OVERLAY -->
 <div class="loading-overlay hidden" id="loadingOverlay">
   <div class="spinner"></div>
@@ -709,6 +769,7 @@ html, body {
 <div id="toast">✓</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
 // ════ SUPABASE ════
 const SUPA_URL = 'https://nzpfrizzhubvmwxxxdlo.supabase.co';
@@ -740,6 +801,16 @@ let modoEdit = false;
 let editId   = null;
 let pendDelId = null;
 let realtimeCh = null;
+let filtroStatus = 'todas'; // 'todas' | 'aberto' | 'pago'
+let chartInstance = null;
+
+function setFiltro(f) {
+  filtroStatus = f;
+  document.querySelectorAll('.filtro-chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.filtro === f);
+  });
+  render();
+}
 
 // ════ MÁSCARA VALOR ════
 function aplicaMask(inp) {
@@ -1063,12 +1134,22 @@ function render() {
   document.getElementById('cAberto').textContent  = fmt(tAbert);
   document.getElementById('cQAberto').textContent = `${aberto.length} pendente${aberto.length!==1?'s':''}`;
 
-  // Lista de contas
+  // Lista de contas (respeitando o filtro rápido: Todas / Pendentes / Pagas)
+  let listaExibir = lista;
+  if (filtroStatus === 'aberto') listaExibir = lista.filter(c => c.status !== 'pago');
+  if (filtroStatus === 'pago')   listaExibir = lista.filter(c => c.status === 'pago');
+
   const lc = document.getElementById('listaContas');
-  if (lista.length === 0) {
-    lc.innerHTML = `<div class="empty-box"><div class="ei">📋</div><p>Nenhuma conta este mês.<br>Toque em <b>＋</b> para adicionar.</p></div>`;
+  if (listaExibir.length === 0) {
+    const msgFiltro = {
+      aberto: 'Nenhuma conta pendente este mês. 🎉',
+      pago:   'Nenhuma conta paga este mês ainda.'
+    }[filtroStatus];
+    lc.innerHTML = msgFiltro
+      ? `<div class="empty-box"><div class="ei">📋</div><p>${msgFiltro}</p></div>`
+      : `<div class="empty-box"><div class="ei">📋</div><p>Nenhuma conta este mês.<br>Toque em <b>＋</b> para adicionar.</p></div>`;
   } else {
-    const sorted = [...lista].sort((a,b) => a.vencimento.localeCompare(b.vencimento));
+    const sorted = [...listaExibir].sort((a,b) => a.vencimento.localeCompare(b.vencimento));
     lc.innerHTML = sorted.map(c => {
       const sc   = { pago:'s-pago', pendente:'s-pendente', vencida:'s-vencida' }[c.status] || 's-pendente';
       const slbl = { pago:'✓ Pago', pendente:'Pendente', vencida:'Vencida' }[c.status] || c.status;
@@ -1097,6 +1178,93 @@ function render() {
   }
 
 
+}
+
+// ════ GRÁFICO MENSAL (TENDÊNCIA) ════
+const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// Agrupa TODAS as contas carregadas (não só do mês atual) por ano-mês de vencimento
+function agregarPorMes() {
+  const map = {};
+  contas.forEach(c => {
+    const ym = c.vencimento.slice(0, 7); // 'YYYY-MM'
+    if (!map[ym]) map[ym] = { pago: 0, aberto: 0, total: 0 };
+    if (c.status === 'pago') map[ym].pago += c.valor;
+    else map[ym].aberto += c.valor;
+    map[ym].total += c.valor;
+  });
+  return map;
+}
+
+function abrirGrafico() {
+  document.getElementById('graficoOverlay').classList.add('open');
+  desenhaGrafico();
+}
+function fecharGrafico() {
+  document.getElementById('graficoOverlay').classList.remove('open');
+}
+
+function desenhaGrafico() {
+  const map = agregarPorMes();
+  const todosYm = Object.keys(map).sort(); // strings 'YYYY-MM' ordenam cronologicamente
+  const ultimos = todosYm.slice(-12); // até os últimos 12 meses com dados
+
+  const infoEl = document.getElementById('graficoInfo');
+  const wrapEl = document.querySelector('.grafico-canvas-wrap');
+
+  if (ultimos.length === 0) {
+    infoEl.textContent = 'Ainda não há dados suficientes.';
+    wrapEl.innerHTML = '<div class="grafico-empty">Cadastre algumas contas para ver a evolução mensal.</div>';
+    return;
+  }
+  if (!document.getElementById('graficoCanvas')) {
+    wrapEl.innerHTML = '<canvas id="graficoCanvas"></canvas>';
+  }
+
+  const labels     = ultimos.map(ym => `${MESES_ABREV[parseInt(ym.slice(5,7)) - 1]}/${ym.slice(2,4)}`);
+  const dataPago   = ultimos.map(ym => Math.round(map[ym].pago   * 100) / 100);
+  const dataAberto = ultimos.map(ym => Math.round(map[ym].aberto * 100) / 100);
+
+  // Texto de tendência: compara o último mês com dados contra o anterior
+  if (ultimos.length >= 2) {
+    const atual     = map[ultimos[ultimos.length - 1]].total;
+    const anterior  = map[ultimos[ultimos.length - 2]].total;
+    const diff      = atual - anterior;
+    const pct       = anterior > 0 ? (diff / anterior * 100) : 0;
+    let seta = '→', cor = 'var(--muted)', txt = 'estável em relação ao mês anterior';
+    if (pct > 3)  { seta = '↑'; cor = 'var(--red)';   txt = `${pct.toFixed(1)}% maior que o mês anterior`; }
+    if (pct < -3) { seta = '↓'; cor = 'var(--green)'; txt = `${Math.abs(pct).toFixed(1)}% menor que o mês anterior`; }
+    infoEl.innerHTML = `<span style="color:${cor}">${seta}</span> Total deste mês está ${txt}`;
+  } else {
+    infoEl.textContent = `Total do mês: ${fmt(map[ultimos[0]].total)}`;
+  }
+
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  const ctx = document.getElementById('graficoCanvas').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Pago',     data: dataPago,   backgroundColor: '#34d399', borderRadius: 4, stack: 's' },
+        { label: 'Pendente', data: dataAberto, backgroundColor: '#fbbf24', borderRadius: 4, stack: 's' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#8892b0', font: { size: 10 } } },
+        y: { stacked: true, grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#8892b0', font: { size: 10 }, callback: v => 'R$ ' + v } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.raw)}` }
+        }
+      }
+    }
+  });
 }
 
 // ════ TOAST ════
