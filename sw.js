@@ -1,7 +1,7 @@
 // Integra o service worker do OneSignal (notificações push) ao SW existente
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'contascasa-v1';
+const CACHE = 'contascasa-v2';
 const ASSETS = [
   '/contas-casa/',
   '/contas-casa/index.html',
@@ -34,7 +34,7 @@ self.addEventListener('fetch', e => {
   if (e.request.url.includes('supabase.co')) return;
 
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-store' })
       .then(res => {
         // Atualiza cache com resposta nova
         const clone = res.clone();
