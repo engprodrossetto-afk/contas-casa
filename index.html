@@ -1225,8 +1225,14 @@ function agregarPorMes() {
 
 // ════ NOTIFICAÇÕES (ONESIGNAL) ════
 function ativarNotificacoes() {
+  let respondeu = false;
+  setTimeout(() => {
+    if (!respondeu) toast('⚠️ SDK de notificações não carregou (sem internet ou bloqueado pelo navegador)', true);
+  }, 6000);
+
   // Chamado direto no clique, sem await antes, para não perder o gesto do usuário
   OneSignalDeferred.push(async function (OneSignal) {
+    respondeu = true;
     try {
       if (currentUser) await OneSignal.login(currentUser.id);
     } catch (e) {
