@@ -506,7 +506,7 @@ html, body {
         <input type="text" id="fDesc" placeholder="Ex: Conta de luz" autocapitalize="sentences">
       </div>
       <div class="sfield">
-        <label>Valor (R$)</label>
+        <label id="lblValor">Valor (R$)</label>
         <input type="text" id="fValor" class="valor-inp" placeholder="0,00" inputmode="numeric" autocomplete="off">
       </div>
       <div class="grid2">
@@ -818,18 +818,20 @@ let numParc = 1;
 
 function selecionaParc(sel) {
   numParc = parseInt(sel.value);
+  document.getElementById('lblValor').textContent = numParc > 1 ? 'Valor da prestação (R$)' : 'Valor (R$)';
   atualizaParcPreview();
 }
 
 function atualizaParcPreview() {
   const preview = document.getElementById('parcPreview');
   const info    = document.getElementById('parcInfo');
-  const valor   = getValor(document.getElementById('fValor'));
+  const valor   = getValor(document.getElementById('fValor')); // valor da prestação (já não é mais o total)
   const venc    = document.getElementById('fVenc').value;
 
   if (numParc <= 1 || !valor || !venc) { preview.style.display = 'none'; return; }
 
-  const parcVal = valor / numParc;
+  const parcVal = valor; // o valor digitado JÁ É o valor de cada prestação
+  const total   = Math.round(parcVal * numParc * 100) / 100;
   const [y, m, d] = venc.split('-').map(Number);
   let linhas = '';
   for (let i = 0; i < numParc; i++) {
@@ -840,6 +842,7 @@ function atualizaParcPreview() {
     let ms = String(mm).padStart(2,'0');
     linhas += `Parcela ${i+1}/${numParc} — <b>${fmt(parcVal)}</b> — ${ds}/${ms}/${py}<br>`;
   }
+  linhas += `<br>Total parcelado: <b>${fmt(total)}</b>`;
   info.innerHTML = linhas;
   preview.style.display = 'block';
 }
@@ -859,6 +862,7 @@ function abrirSheet(id) {
   // Reset parcelamento
   numParc = 1;
   document.getElementById('fParc').value = '1';
+  document.getElementById('lblValor').textContent = 'Valor (R$)';
   document.getElementById('parcPreview').style.display = 'none';
 
   if (modoEdit) {
@@ -901,7 +905,7 @@ async function confirmarSheet() {
     if (error) { toast('❌ Erro ao atualizar', true); console.error(error); return; }
     toast('✓ Conta atualizada!');
   } else {
-    const parcVal = valor / numParc;
+    const parcVal = valor; // valor digitado já é o valor de cada prestação (não divide mais)
     const [y, m, d] = venc.split('-').map(Number);
     const grupoId = String(Date.now());
     const rows = [];
@@ -927,7 +931,10 @@ async function confirmarSheet() {
 
     const { error } = await sb.from('contas').insert(rows);
     if (error) { toast('❌ Erro ao salvar', true); console.error(error); return; }
-    const msg = numParc > 1 ? `✓ ${numParc} parcelas registradas!` : '✓ Conta registrada!';
+    const total = Math.round(parcVal * numParc * 100) / 100;
+    const msg = numParc > 1
+      ? `✓ ${numParc}x de ${fmt(parcVal)} (total ${fmt(total)})`
+      : '✓ Conta registrada!';
     toast(msg);
   }
 
