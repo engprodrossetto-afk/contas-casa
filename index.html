@@ -486,6 +486,7 @@ html, body {
       <button class="btn-icon-top" onclick="abrirGrafico()" title="Evolução mensal">📊</button>
       <button class="btn-icon-top" id="btnNotif" onclick="ativarNotificacoes()" title="Ativar notificações">🔔</button>
       <button class="btn-icon-top" onclick="diagnosticoNotif()" title="Diagnóstico">🔧</button>
+      <button class="btn-icon-top" onclick="testeNativo()" title="Teste nativo">🧪</button>
       <button class="btn-out" onclick="doLogout()">Sair</button>
     </div>
   </div>
@@ -1225,6 +1226,16 @@ function agregarPorMes() {
 }
 
 // ════ NOTIFICAÇÕES (ONESIGNAL) ════
+async function testeNativo() {
+  try {
+    alert('Antes de pedir: ' + Notification.permission);
+    const resultado = await Notification.requestPermission();
+    alert('Resultado do pedido nativo: ' + resultado);
+  } catch (e) {
+    alert('Erro no pedido nativo: ' + (e && e.message ? e.message : String(e)));
+  }
+}
+
 async function diagnosticoNotif() {
   const info = [];
   info.push('Notification API: ' + (typeof Notification !== 'undefined' ? 'existe' : 'NÃO EXISTE'));
