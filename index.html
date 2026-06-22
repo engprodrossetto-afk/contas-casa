@@ -485,8 +485,6 @@ html, body {
       <div class="chip-user">Olá, <b id="userLabel">—</b></div>
       <button class="btn-icon-top" onclick="abrirGrafico()" title="Evolução mensal">📊</button>
       <button class="btn-icon-top" id="btnNotif" onclick="ativarNotificacoes()" title="Ativar notificações">🔔</button>
-      <button class="btn-icon-top" onclick="diagnosticoNotif()" title="Diagnóstico">🔧</button>
-      <button class="btn-icon-top" onclick="testeNativo()" title="Teste nativo">🧪</button>
       <button class="btn-out" onclick="doLogout()">Sair</button>
     </div>
   </div>
@@ -870,14 +868,10 @@ async function doLogin() {
     await carregarContas();
     iniciarRealtime();
 
-    // Vincula este dispositivo ao usuário no OneSignal e pede permissão de notificação
+    // Vincula este dispositivo ao usuário no OneSignal (a permissão é pedida pelo botão 🔔)
     OneSignalDeferred.push(async function (OneSignal) {
-      try {
-        await OneSignal.login(u);
-        if (OneSignal.Notifications.permission !== true) {
-          await OneSignal.Notifications.requestPermission();
-        }
-      } catch (e) { console.warn('OneSignal login/permissão:', e); }
+      try { await OneSignal.login(u); }
+      catch (e) { console.warn('OneSignal login:', e); }
     });
   } else {
     document.getElementById('loginErr').style.display = 'block';
@@ -1226,68 +1220,32 @@ function agregarPorMes() {
 }
 
 // ════ NOTIFICAÇÕES (ONESIGNAL) ════
-async function testeNativo() {
+// ════ NOTIFICAÇÕES (ONESIGNAL) ════
+async function ativarNotificacoes() {
   try {
-    alert('Antes de pedir: ' + Notification.permission);
-    const resultado = await Notification.requestPermission();
-    alert('Resultado do pedido nativo: ' + resultado);
-  } catch (e) {
-    alert('Erro no pedido nativo: ' + (e && e.message ? e.message : String(e)));
-  }
-}
+    // Pede a permissão usando a API nativa do navegador (mais confiável)
+    const perm = await Notification.requestPermission();
 
-async function diagnosticoNotif() {
-  const info = [];
-  info.push('Notification API: ' + (typeof Notification !== 'undefined' ? 'existe' : 'NÃO EXISTE'));
-  if (typeof Notification !== 'undefined') {
-    info.push('Permissão nativa: ' + Notification.permission);
-  }
-  info.push('window.OneSignal: ' + (typeof window.OneSignal !== 'undefined' ? 'carregado' : 'NÃO CARREGADO'));
-  info.push('Fila OneSignalDeferred: ' + (window.OneSignalDeferred ? window.OneSignalDeferred.length + ' itens' : 'n/a'));
-  try {
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      info.push('Service Workers: ' + regs.length);
-      regs.forEach((r, i) => info.push(`  [${i}] scope=${r.scope} active=${!!r.active}`));
+    if (perm === 'granted') {
+      // Vincula este dispositivo ao usuário e garante a inscrição no OneSignal
+      OneSignalDeferred.push(async function (OneSignal) {
+        try {
+          if (currentUser) await OneSignal.login(currentUser.id);
+          await OneSignal.User.PushSubscription.optIn();
+        } catch (e) {
+          console.warn('OneSignal login/optIn:', e);
+        }
+      });
+      toast('🔔 Notificações ativadas!');
+    } else if (perm === 'denied') {
+      toast('⚠️ Permissão bloqueada — ative manualmente nas configurações do site', true);
     } else {
-      info.push('serviceWorker: API NÃO EXISTE neste navegador');
+      toast('⚠️ Permissão não concedida', true);
     }
   } catch (e) {
-    info.push('Erro ao checar SW: ' + e.message);
+    console.error('Erro ao ativar notificações:', e);
+    toast('❌ Erro: ' + (e && e.message ? e.message : String(e)), true);
   }
-  alert(info.join('\n'));
-}
-
-function ativarNotificacoes() {
-  let respondeu = false;
-  setTimeout(() => {
-    if (!respondeu) toast('⚠️ SDK de notificações não carregou (sem internet ou bloqueado pelo navegador)', true);
-  }, 6000);
-
-  // Chamado direto no clique, sem await antes, para não perder o gesto do usuário
-  OneSignalDeferred.push(async function (OneSignal) {
-    respondeu = true;
-    try {
-      if (currentUser) await OneSignal.login(currentUser.id);
-    } catch (e) {
-      console.error('Erro no OneSignal.login:', e);
-      toast('❌ Login OneSignal: ' + (e && e.message ? e.message : String(e)), true);
-      return;
-    }
-    try {
-      await OneSignal.Notifications.requestPermission();
-      const ativo = OneSignal.Notifications.permission === true;
-      if (ativo) {
-        toast('🔔 Notificações ativadas!');
-        document.getElementById('btnNotif').textContent = '🔔';
-      } else {
-        toast('⚠️ Permissão não concedida — veja as configurações do site no navegador', true);
-      }
-    } catch (e) {
-      console.error('Erro no requestPermission:', e);
-      toast('❌ Permissão: ' + (e && e.message ? e.message : String(e)), true);
-    }
-  });
 }
 
 function abrirGrafico() {
