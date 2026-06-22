@@ -484,6 +484,7 @@ html, body {
     <div class="topbar-right">
       <div class="chip-user">Olá, <b id="userLabel">—</b></div>
       <button class="btn-icon-top" onclick="abrirGrafico()" title="Evolução mensal">📊</button>
+      <button class="btn-icon-top" onclick="diagPush()" title="Diag push">🔍</button>
       <button class="btn-icon-top" id="btnNotif" onclick="ativarNotificacoes()" title="Ativar notificações">🔔</button>
       <button class="btn-out" onclick="doLogout()">Sair</button>
     </div>
@@ -1221,6 +1222,20 @@ function agregarPorMes() {
 
 // ════ NOTIFICAÇÕES (ONESIGNAL) ════
 // ════ NOTIFICAÇÕES (ONESIGNAL) ════
+function diagPush() {
+  OneSignalDeferred.push(async function (OneSignal) {
+    try {
+      const sub = OneSignal.User.PushSubscription;
+      let msg = 'ANTES optIn:\nid=' + sub.id + '\ntoken=' + sub.token + '\noptedIn=' + sub.optedIn + '\npermissaoNativa=' + Notification.permission;
+      await sub.optIn();
+      msg += '\n\nDEPOIS optIn:\nid=' + sub.id + '\ntoken=' + sub.token + '\noptedIn=' + sub.optedIn;
+      alert(msg);
+    } catch (e) {
+      alert('ERRO no optIn: ' + (e && e.message ? e.message : String(e)) + '\n' + (e && e.stack ? e.stack : ''));
+    }
+  });
+}
+
 async function ativarNotificacoes() {
   try {
     // Pede a permissão usando a API nativa do navegador (mais confiável)
