@@ -1229,7 +1229,13 @@ function ativarNotificacoes() {
   OneSignalDeferred.push(async function (OneSignal) {
     try {
       if (currentUser) await OneSignal.login(currentUser.id);
-      const perm = await OneSignal.Notifications.requestPermission();
+    } catch (e) {
+      console.error('Erro no OneSignal.login:', e);
+      toast('❌ Login OneSignal: ' + (e && e.message ? e.message : String(e)), true);
+      return;
+    }
+    try {
+      await OneSignal.Notifications.requestPermission();
       const ativo = OneSignal.Notifications.permission === true;
       if (ativo) {
         toast('🔔 Notificações ativadas!');
@@ -1238,8 +1244,8 @@ function ativarNotificacoes() {
         toast('⚠️ Permissão não concedida — veja as configurações do site no navegador', true);
       }
     } catch (e) {
-      console.error('Erro ao ativar notificações:', e);
-      toast('❌ Erro ao ativar notificações', true);
+      console.error('Erro no requestPermission:', e);
+      toast('❌ Permissão: ' + (e && e.message ? e.message : String(e)), true);
     }
   });
 }
