@@ -1039,7 +1039,7 @@ function abrirDel(id) {
   const c = contas.find(x => String(x.id) === String(id));
   if (!c) return;
   pendDelId = String(id);
-  document.getElementById('delDesc').textContent = c.desc + ' — ' + fmt(c.valor);
+  document.getElementById('delDesc').textContent = c.descricao + ' — ' + fmt(c.valor);
 
   const temParc = !!c.grupoId;
   document.getElementById('delTitle').textContent = temParc ? 'Remover parcela?' : 'Remover conta?';
@@ -1054,7 +1054,8 @@ function fecharDel() {
 }
 async function confirmarDel(modo) {
   if (pendDelId === null) return;
-  const c = contas.find(x => String(x.id) === String(pendDelId));
+  const idAlvo = pendDelId; // captura ANTES de fecharDel() zerar a variável global
+  const c = contas.find(x => String(x.id) === String(idAlvo));
   fecharDel();
 
   if (modo === 'todas' && c && c.grupoId) {
@@ -1064,7 +1065,7 @@ async function confirmarDel(modo) {
     if (!data || data.length === 0) { toast('⚠️ Nada foi excluído — parcelas não encontradas', true); return; }
     toast('🗑️ Todas as parcelas removidas');
   } else {
-    const { data, error } = await sb.from('contas').delete().eq('id', String(pendDelId)).select();
+    const { data, error } = await sb.from('contas').delete().eq('id', idAlvo).select();
     if (error) { toast('❌ Erro ao excluir', true); console.error(error); return; }
     if (!data || data.length === 0) { toast('⚠️ Nada foi excluído — conta não encontrada', true); return; }
     toast('🗑️ Conta removida');
