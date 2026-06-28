@@ -1174,7 +1174,7 @@ function render() {
       ? `<div class="empty-box"><div class="ei">📋</div><p>${msgFiltro}</p></div>`
       : `<div class="empty-box"><div class="ei">📋</div><p>Nenhuma conta este mês.<br>Toque em <b>＋</b> para adicionar.</p></div>`;
   } else {
-    const sorted = [...listaExibir].sort((a,b) => a.vencimento.localeCompare(b.vencimento));
+    const sorted = [...listaExibir].sort((a,b) => b.valor - a.valor);
     lc.innerHTML = sorted.map(c => {
       const sc   = { pago:'s-pago', pendente:'s-pendente', vencida:'s-vencida' }[c.status] || 's-pendente';
       const slbl = { pago:'✓ Pago', pendente:'Pendente', vencida:'Vencida' }[c.status] || c.status;
